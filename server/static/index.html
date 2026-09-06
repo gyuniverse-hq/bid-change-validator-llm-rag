@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업체 프로필 빌더 — 연결된 데모</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ink: #171b26; --ink-soft: #4b5165; --ink-faint: #838a9e;
+    --paper: #eef0f4; --surface: #ffffff; --surface-2: #f6f7fa;
+    --line: #d9dce4; --line-strong: #c3c7d4;
+    --accent: #2f3f7a; --accent-ink: #1f2c5c; --accent-soft: #dde3f6;
+    --seal: #a8402e; --seal-soft: #f4ddd7;
+    --good: #2f7d5c; --good-soft: #d9efe4;
+    --warn: #9b7a26; --warn-soft: #f5e9d3;
+    /* 요약 카드 전용 — AI 서술(판정 아님)임을 배경색으로도 구분한다.
+       배지(--accent-soft)보다 옅어야 그 위에서 배지가 묻히지 않는다. */
+    --summary-bg: #eaf1fd;
+    --shadow: 0 1px 2px rgba(23,27,38,.05), 0 10px 28px -14px rgba(23,27,38,.16);
+    /* system-ui: OS 기본 UI 폰트를 그대로 쓴다(Windows는 Segoe UI, macOS는 San Francisco) —
+       코드 편집기·채팅 패널 등 대부분의 네이티브 앱 UI가 이 폰트를 쓴다. 한글은 시스템이
+       자동으로 한글 폰트로 대체하지만, 브라우저마다 편차가 있어 명시적으로도 지정해둔다. */
+    --font-display: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕",
+                    "Apple SD Gothic Neo", Roboto, "Gothic A1", sans-serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕",
+                 "Apple SD Gothic Neo", Roboto, "Gothic A1", sans-serif;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e7e9f0; --ink-soft: #a7acc0; --ink-faint: #6d7386;
+      --paper: #10131b; --surface: #181c27; --surface-2: #1e2330;
+      --line: #2b3040; --line-strong: #3a4053;
+      --accent: #8b9ce8; --accent-ink: #c3cdf5; --accent-soft: #232c50;
+      --seal: #dd8770; --seal-soft: #3a2620;
+      --good: #6cc9a1; --good-soft: #1c3229;
+      --warn: #e2b568; --warn-soft: #3a3020;
+      --summary-bg: #182740;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px -14px rgba(0,0,0,.55);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #e7e9f0; --ink-soft: #a7acc0; --ink-faint: #6d7386;
+    --paper: #10131b; --surface: #181c27; --surface-2: #1e2330;
+    --line: #2b3040; --line-strong: #3a4053;
+    --accent: #8b9ce8; --accent-ink: #c3cdf5; --accent-soft: #232c50;
+    --seal: #dd8770; --seal-soft: #3a2620;
+    --good: #6cc9a1; --good-soft: #1c3229;
+    --warn: #e2b568; --warn-soft: #3a3020;
+    --summary-bg: #182740;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 28px -14px rgba(0,0,0,.55);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    /* 개별 규칙이 따로 지정하지 않은 요소(라벨 등)에도 자간이 조금 넓게 깔리도록 */
+    letter-spacing: .01em;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  input, select, button, textarea { font: inherit; color: inherit; }
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+  .page { max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px; }
+
+  .masthead {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 14px;
+  }
+  .masthead-main { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 13.5px; letter-spacing: 0.105em;
+    text-transform: uppercase; color: var(--accent); font-weight: 500;
+  }
+  .masthead h1 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(30px, 3.4vw, 40px); letter-spacing: 0.005em;
+  }
+  .masthead p { max-width: 66ch; color: var(--ink-soft); font-size: 16px; line-height: 1.75; }
+
+  .conn {
+    flex: none; display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-mono); font-size: 13.5px; font-weight: 500;
+    padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--surface); white-space: nowrap; margin-top: 2px;
+  }
+  .conn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+  .conn.ok { color: var(--good); border-color: var(--good-soft); }
+  .conn.ok .dot { background: var(--good); }
+  .conn.bad { color: var(--seal); border-color: var(--seal-soft); }
+  .conn.bad .dot { background: var(--seal); }
+  .conn.wait .dot { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  .fatal-banner {
+    background: var(--seal-soft); color: var(--seal); border: 1px solid var(--seal);
+    border-radius: 8px; padding: 14px 16px; font-size: 15.5px; line-height: 1.75;
+    margin-bottom: 24px;
+  }
+  .fatal-banner code {
+    font-family: var(--font-mono); background: var(--surface); border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: 4px; color: var(--ink-soft);
+  }
+  .fatal-banner[hidden] { display: none; }
+
+  .demo-note {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14.5px; color: var(--ink-faint); margin-bottom: 28px;
+  }
+  .demo-note .tag {
+    font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; letter-spacing: 0.055em;
+    color: var(--warn); background: var(--warn-soft); border-radius: 4px; padding: 2px 6px;
+  }
+  .demo-note .tag.tag-real { color: var(--accent); background: var(--accent-soft); }
+
+  /* ── 공고 전환 ────────────────────────────────────────────────── */
+  /* .card보다 우선하려고 클래스를 겹쳐 썼다(같은 클래스 1개짜리 선택자는 소스 순서상
+     .card 규칙이 나중에 나와 그대로 두면 밀려난다) — 배경·너비는 반드시 이쪽이 이겨야 한다.
+     이 공고문 요약은 판정이 아니라 AI 서술이므로, 옅은 파란 배경으로 다른 카드(판정 결과)와
+     시각적으로 구분한다. 세로 크기(패딩·글자 크기)는 다른 카드와 동일 — 줄인 건 가로 폭뿐이다.
+     margin: 0 auto로 좁아진 폭을 페이지 안에서 가운데 배치한다. */
+  .summary-card.card {
+    margin: 0 auto 20px; background: var(--summary-bg); width: 75%;
+    font-family: "Malgun Gothic", "맑은 고딕", sans-serif;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .summary-card .card-head { align-items: center; }
+  .summary-card .ai-hint {
+    font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; letter-spacing: 0.045em;
+    color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 2px 7px;
+  }
+  .summary-body-text {
+    font-size: 15.5px; line-height: 1.85; color: var(--ink); white-space: pre-wrap;
+  }
+  .summary-body-text .summary-fail { color: var(--seal); }
+
+  .bid-switcher { margin-bottom: 20px; }
+  .bid-switcher .tag-input-row { align-items: center; }
+  .bid-switcher .btn-ghost { flex: none; }
+  .bid-info {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: 84px 1fr; gap: 7px 12px;
+    font-size: 14.5px;
+  }
+  .bid-info-row { display: contents; }
+  .bid-info-label { color: var(--ink-faint); }
+  .bid-info-value {
+    color: var(--ink); word-break: break-word;
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px;
+  }
+
+  .change-notice {
+    margin-top: 10px; font-size: 14.5px; line-height: 1.75;
+    background: var(--warn-soft); color: var(--warn);
+    border-radius: 6px; padding: 9px 12px;
+  }
+  .change-notice[hidden] { display: none; }
+
+  .watchlist-row {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .star-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    color: var(--ink-soft); border-radius: 7px; padding: 7px 12px;
+    font-size: 14.5px; font-weight: 500; cursor: pointer;
+  }
+  .star-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .star-btn:disabled { opacity: .5; cursor: default; }
+  .star-btn.starred { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+  .star-btn.starred svg { fill: currentColor; }
+
+  .watchlist-row + .chips { margin-top: 10px; }
+  .chip.watch-chip { background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line); cursor: pointer; }
+  .chip.watch-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.watch-chip.active { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+
+  .shell { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(340px, 1.05fr); gap: 24px; align-items: start; }
+  @media (max-width: 940px) { .shell { grid-template-columns: 1fr; } .summary-col { position: static !important; } }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 20px 20px 22px; }
+  .card + .card { margin-top: 16px; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .card-title { font-weight: 700; font-size: 14px; letter-spacing: 0.085em; text-transform: uppercase; color: var(--ink-soft); }
+  .card-hint { font-size: 14px; color: var(--ink-faint); }
+
+  /* uploader */
+  .uploader { display: flex; align-items: center; gap: 12px; border: 1px dashed var(--line-strong); border-radius: 8px; padding: 12px 14px; background: var(--surface-2); cursor: pointer; }
+  .uploader.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .uploader-icon { flex: none; width: 30px; height: 30px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; }
+  .uploader-text { flex: 1; min-width: 0; }
+  .uploader-text strong { display: block; font-size: 15px; }
+  .uploader-text span { font-size: 13.5px; color: var(--ink-faint); }
+  .btn-file { position: relative; overflow: hidden; flex: none; }
+  .btn-file input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-msg { margin-top: 9px; font-size: 14px; padding: 7px 11px; border-radius: 6px; }
+  .upload-msg.ok { background: var(--good-soft); color: var(--good); }
+  .upload-msg.err { background: var(--seal-soft); color: var(--seal); }
+  .upload-msg.demo { background: var(--warn-soft); color: var(--warn); }
+  .upload-msg[hidden] { display: none; }
+
+  .field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 14px; font-weight: 500; color: var(--ink-soft); }
+  .field input[type="text"], .field input[type="number"], .field input[type="date"], .field select {
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 7px;
+    padding: 8px 10px; font-size: 15.5px; color: var(--ink); width: 100%;
+  }
+
+  .switch-row { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
+  .switch { position: relative; width: 38px; height: 22px; flex: none; }
+  .switch input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
+  .switch-track { position: absolute; inset: 0; background: var(--line-strong); border-radius: 999px; transition: background .15s ease; }
+  .switch-track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s ease; }
+  .switch input:checked + .switch-track { background: var(--accent); }
+  .switch input:checked + .switch-track::after { transform: translateX(16px); }
+  .switch-row span { font-size: 15px; color: var(--ink-soft); }
+
+  .tag-input-row { display: flex; gap: 7px; }
+  .tag-input-row input { flex: 1; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 10px; font-size: 15.5px; }
+  .tag-add { flex: none; border: 1px solid var(--line-strong); background: var(--surface-2); border-radius: 7px; padding: 0 12px; font-size: 14.5px; font-weight: 500; cursor: pointer; color: var(--ink-soft); }
+  .tag-add:hover { border-color: var(--accent); color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; min-height: 1px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-soft); color: var(--accent-ink); border-radius: 999px; padding: 4px 5px 4px 11px; font-size: 14px; font-weight: 500; }
+  .chip button { all: unset; cursor: pointer; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; line-height: 1; color: var(--accent-ink); opacity: .6; }
+  .chip button:hover { opacity: 1; background: rgba(0,0,0,.08); }
+
+  .grade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .grade-field { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; background: var(--surface-2); }
+  .grade-field label { display: block; font-size: 13px; color: var(--ink-faint); margin-bottom: 4px; }
+  .grade-field input { width: 100%; border: none; background: transparent; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 19px; font-weight: 600; color: var(--ink); padding: 0; }
+
+  .perf-row { border: 1px solid var(--line); border-radius: 8px; padding: 12px 12px 10px; background: var(--surface-2); }
+  .perf-row + .perf-row { margin-top: 9px; }
+  .perf-row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+  .perf-row-head span { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-faint); letter-spacing: 0.065em; }
+  .perf-remove { all: unset; cursor: pointer; font-size: 13.5px; color: var(--seal); padding: 2px 6px; border-radius: 4px; }
+  .perf-remove:hover { background: var(--seal-soft); }
+  .perf-grid { display: grid; grid-template-columns: 1.4fr 1fr .9fr .8fr; gap: 9px; }
+  @media (max-width: 620px) { .field-grid, .perf-grid { grid-template-columns: 1fr; } }
+  .perf-grid input { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 8px; font-size: 15px; width: 100%; }
+  .perf-grid label { display: block; font-size: 12.5px; color: var(--ink-faint); margin-bottom: 3px; }
+  .amount-preview { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-faint); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .add-row-btn { margin-top: 11px; width: 100%; border: 1px dashed var(--line-strong); background: transparent; color: var(--ink-soft); border-radius: 7px; padding: 9px; font-size: 14.5px; font-weight: 500; cursor: pointer; }
+  .add-row-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .empty-note { font-size: 14px; color: var(--ink-faint); padding: 6px 2px; }
+
+  .stat-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .stat-tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface-2); }
+  .stat-tile .stat-label { font-size: 12.5px; color: var(--ink-faint); }
+  .stat-tile .stat-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 19px; font-weight: 600; margin-top: 2px; }
+  .stat-tile .stat-value small { font-size: 13px; color: var(--ink-faint); font-weight: 500; }
+
+  .export-row { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+  .btn-ghost { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-soft); border-radius: 7px; padding: 8px 13px; font-size: 14.5px; font-weight: 500; cursor: pointer; }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost.copied { border-color: var(--good); color: var(--good); }
+  .json-box[hidden] { display: none; }
+  .json-box { margin-top: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; max-height: 220px; overflow: auto; }
+  .json-box pre { margin: 0; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; }
+
+  /* ── judge / eligibility results ─────────────────────────────── */
+  .summary-col { position: sticky; top: 24px; display: flex; flex-direction: column; }
+  .verdict-item { border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; background: var(--surface-2); }
+  .verdict-item + .verdict-item { margin-top: 9px; }
+  .verdict-head { display: flex; align-items: flex-start; gap: 9px; }
+  .pill { flex: none; display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; letter-spacing: 0.035em; padding: 3px 8px; border-radius: 999px; margin-top: 1px; }
+  .pill.ok { background: var(--good-soft); color: var(--good); }
+  .pill.no { background: var(--seal-soft); color: var(--seal); }
+  .pill.hold { background: var(--warn-soft); color: var(--warn); }
+  .pill.info { background: var(--surface); color: var(--ink-faint); border: 1px solid var(--line); }
+  .verdict-text { flex: 1; min-width: 0; font-size: 15px; line-height: 1.65; }
+  .verdict-reason { font-size: 14px; color: var(--ink-faint); margin-top: 3px; line-height: 1.65; }
+  .verdict-loading { font-size: 14.5px; color: var(--ink-faint); padding: 4px 2px; }
+
+  .chatline { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .chatline .q { font-size: 14.5px; color: var(--ink-soft); margin-bottom: 7px; line-height: 1.7; }
+  .chatline .q b { color: var(--accent); font-weight: 600; }
+  .chat-row { display: flex; gap: 7px; }
+  .chat-row input { flex: 1; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 10px; font-size: 15px; }
+  .chat-row button { flex: none; background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 0 14px; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+  .chat-row button:disabled { opacity: .5; cursor: default; }
+  .chat-feedback { margin-top: 7px; font-size: 14px; line-height: 1.7; }
+  .chat-feedback .rej { color: var(--seal); }
+  .chat-feedback .ok { color: var(--good); }
+  .chat-feedback .neu { color: var(--ink-faint); }
+  .chat-resolved { margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: var(--good); font-weight: 600; }
+
+  .finding-item { border: 1px solid var(--line); border-radius: 8px; padding: 12px 13px; background: var(--surface-2); }
+  .finding-item + .finding-item { margin-top: 9px; }
+  .finding-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .finding-method { font-family: var(--font-mono); font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.055em; }
+  .finding-title { font-size: 15.5px; font-weight: 700; margin-top: 3px; }
+  .finding-std { font-size: 14px; color: var(--ink-soft); margin-top: 6px; line-height: 1.7; }
+  .finding-std b { color: var(--ink); }
+  .finding-quote { font-family: var(--font-mono); font-size: 13.5px; color: var(--ink-faint); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-top: 8px; line-height: 1.75; }
+
+  .unresolvable-item { font-size: 14.5px; color: var(--ink-soft); padding: 8px 0; border-bottom: 1px solid var(--line); line-height: 1.7; }
+  .unresolvable-item:last-child { border-bottom: none; }
+  .unresolvable-item b { color: var(--ink); }
+
+  /* ── 담당자 도우미 (접이식 챗) ────────────────────────────────── */
+  .assist-fab {
+    position: fixed; right: 22px; bottom: 22px; z-index: 60;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 999px; padding: 12px 18px 12px 14px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 6px 20px -6px rgba(0,0,0,.4);
+  }
+  .assist-fab:hover { background: var(--accent-ink); }
+  .assist-fab .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+    background: var(--seal); color: #fff; font-family: var(--font-mono);
+    font-size: 12px; font-weight: 700;
+  }
+  .assist-fab .badge[hidden] { display: none; }
+
+  .assist-panel {
+    position: fixed; right: 22px; bottom: 84px; z-index: 60;
+    width: min(360px, calc(100vw - 44px));
+    max-height: min(480px, calc(100vh - 140px));
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden;
+  }
+  .assist-panel[hidden] { display: none; }
+  .assist-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+    font-size: 14px; font-weight: 700; color: var(--ink-soft);
+    letter-spacing: 0.055em; text-transform: uppercase;
+  }
+  .assist-close { all: unset; cursor: pointer; font-size: 19px; line-height: 1; color: var(--ink-faint); padding: 3px 7px; border-radius: 4px; }
+  .assist-close:hover { background: var(--surface-2); color: var(--ink); }
+  .assist-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; }
+  .assist-msg { max-width: 88%; font-size: 15px; line-height: 1.7; padding: 8px 11px; border-radius: 10px; white-space: pre-wrap; }
+  .assist-msg-bot { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+  .assist-msg-user { align-self: flex-end; background: var(--accent-soft); color: var(--accent-ink); }
+  .assist-msg.assist-thinking { opacity: .55; }
+  .assist-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+  .assist-row input { flex: 1; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 10px; font-size: 15px; }
+  .assist-row button { flex: none; background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 0 14px; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+  .assist-row button:disabled { opacity: .5; cursor: default; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="masthead-main">
+      <span class="eyebrow">나라장터 RFP 검토 프로토타입 · 로컬 연결 데모</span>
+      <h1>업체 프로필 빌더 — 연결된 데모</h1>
+      <p>
+        입력할 때마다 <code>server/api.py</code>가 실제 <code>detect/</code> · <code>eligibility/judge.py</code>를
+        호출해 판정을 갱신합니다. 되묻기에 답하면 실제 Luna가 해석합니다.
+      </p>
+    </div>
+    <div class="conn wait" id="connChip"><span class="dot"></span><span id="connText">연결 확인 중</span></div>
+  </header>
+
+  <p class="fatal-banner" id="fatalBanner" hidden></p>
+
+  <p class="demo-note">
+    <span class="tag" id="sourceTag">로딩</span>
+    <span id="sourceText">공고를 불러오는 중입니다…</span>
+  </p>
+
+  <div class="card summary-card">
+    <div class="card-head">
+      <span class="card-title">공고문 요약</span>
+      <span class="card-hint ai-hint">AI 요약 · 판정 아님</span>
+    </div>
+    <div id="summaryBody"><p class="verdict-loading">로딩 중…</p></div>
+  </div>
+
+  <div class="card bid-switcher">
+    <div class="card-head">
+      <span class="card-title">검토할 공고</span>
+      <span class="card-hint" id="bidStatusHint">불러오는 중…</span>
+    </div>
+    <div class="tag-input-row">
+      <input type="text" id="bidNoInput" placeholder="나라장터 공고번호 (예: R26BK01705963)" autocomplete="off">
+      <button type="button" class="tag-add" id="loadBidBtn">불러오기</button>
+      <button type="button" class="btn-ghost" id="backToDemoBtn">데모로</button>
+    </div>
+    <p class="upload-msg" id="bidMsg" hidden></p>
+    <p class="change-notice" id="changeNotice" hidden></p>
+
+    <div class="watchlist-row">
+      <button type="button" class="star-btn" id="starBtn" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M12 3l2.7 5.9 6.3.6-4.8 4.3 1.4 6.4L12 17l-5.6 3.2 1.4-6.4L3 9.5l6.3-.6z" stroke-linejoin="round"/>
+        </svg>
+        <span id="starBtnLabel">즐겨찾기 추가</span>
+      </button>
+      <span class="card-hint">재진입 시 항상 실제 API로 다시 확인합니다</span>
+    </div>
+    <div class="chips" id="watchlistChips"></div>
+
+    <div class="bid-info">
+      <div class="bid-info-row"><span class="bid-info-label">공고번호</span><span class="bid-info-value" id="biNo">—</span></div>
+      <div class="bid-info-row"><span class="bid-info-label">공고명</span><span class="bid-info-value" id="biName">—</span></div>
+      <div class="bid-info-row"><span class="bid-info-label">발주기관</span><span class="bid-info-value" id="biOrg">—</span></div>
+      <div class="bid-info-row"><span class="bid-info-label">마감일시</span><span class="bid-info-value" id="biDeadline">—</span></div>
+      <div class="bid-info-row"><span class="bid-info-label">추정가격</span><span class="bid-info-value" id="biPrice">—</span></div>
+      <div class="bid-info-row"><span class="bid-info-label">RFP 첨부</span><span class="bid-info-value" id="biFile">—</span></div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <!-- ══════════════════════ FORM COLUMN ══════════════════════ -->
+    <div class="form-col">
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">불러오기</span><span class="card-hint">선택 사항</span></div>
+        <label class="uploader" id="dropzone" for="fileInput">
+          <span class="uploader-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 16V4M12 4L7 9M12 4l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="uploader-text"><strong>기존 프로필 JSON 업로드</strong><span>demo/profiles/*.json 등 — 자동으로 채워집니다</span></span>
+          <span class="btn-file"><span class="tag-add" aria-hidden="true">파일 선택</span><input type="file" id="fileInput" accept=".json,application/json"></span>
+        </label>
+        <p class="upload-msg" id="uploadMsg" hidden></p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">기업 기본정보</span></div>
+        <div class="field-grid">
+          <div class="field"><label for="fCompany">회사명</label><input type="text" id="fCompany" placeholder="예: 가상소프트(주)" autocomplete="off"></div>
+          <div class="field"><label for="fRegion">소재지역</label><select id="fRegion"><option value="">선택</option></select></div>
+        </div>
+        <div class="switch-row">
+          <label class="switch"><input type="checkbox" id="fSme" checked><span class="switch-track"></span></label>
+          <span>중소기업에 해당함</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">보유자격</span><span class="card-hint">Enter 또는 추가</span></div>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="inLicense">보유면허</label>
+          <div class="tag-input-row"><input type="text" id="inLicense" placeholder="예: 소프트웨어사업자"><button type="button" class="tag-add" data-target="license">추가</button></div>
+          <div class="chips" id="chipsLicense"></div>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="inCert">보유인증</label>
+          <div class="tag-input-row"><input type="text" id="inCert" placeholder="예: ISO/IEC 27001"><button type="button" class="tag-add" data-target="cert">추가</button></div>
+          <div class="chips" id="chipsCert"></div>
+        </div>
+        <div class="field">
+          <label for="inDirect">직접생산증명</label>
+          <div class="tag-input-row"><input type="text" id="inDirect" placeholder="예: 소프트웨어개발"><button type="button" class="tag-add" data-target="direct">추가</button></div>
+          <div class="chips" id="chipsDirect"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">기술인력</span><span class="card-hint">등급별 상시 보유 인원</span></div>
+        <div class="grade-grid">
+          <div class="grade-field"><label for="gSpecial">특급</label><input type="number" id="gSpecial" min="0" value="0" inputmode="numeric"></div>
+          <div class="grade-field"><label for="gHigh">고급</label><input type="number" id="gHigh" min="0" value="0" inputmode="numeric"></div>
+          <div class="grade-field"><label for="gMid">중급</label><input type="number" id="gMid" min="0" value="0" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">사업실적</span><span class="card-hint" id="perfCount">0건</span></div>
+        <div id="perfList"></div>
+        <p class="empty-note" id="perfEmpty">등록된 실적이 없습니다.</p>
+        <button type="button" class="add-row-btn" id="addPerf">+ 실적 추가</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">프로필 통계</span></div>
+        <div class="stat-tiles">
+          <div class="stat-tile"><div class="stat-label">등록 실적</div><div class="stat-value" id="statPerfCount">0<small> 건</small></div></div>
+          <div class="stat-tile"><div class="stat-label">실적 합계</div><div class="stat-value" id="statPerfSum">0<small> 원</small></div></div>
+        </div>
+        <div class="export-row">
+          <button type="button" class="btn-ghost" id="exportBtn">프로필 JSON 내보내기</button>
+          <span class="card-hint">CLI에서 --profile 로 재사용</span>
+        </div>
+        <div class="json-box" id="jsonBox" hidden><pre id="jsonOutput"></pre></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════ RESULT COLUMN ══════════════════════ -->
+    <div class="summary-col">
+      <div class="card">
+        <div class="card-head"><span class="card-title">참가자격</span><span class="card-hint" id="judgeHint">실시간 판정</span></div>
+        <div id="eligBody"><p class="verdict-loading">데모 공고 로딩 중…</p></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">확인 필요 조항</span><span class="card-hint" id="findingsCount"></span></div>
+        <div id="findingsBody"><p class="verdict-loading">로딩 중…</p></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">확인 불가</span></div>
+        <div id="unresolvableBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button type="button" class="assist-fab" id="assistFab" aria-expanded="false" aria-controls="assistPanel">
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span>담당자 도우미</span>
+  <span class="badge" id="assistBadge" hidden>!</span>
+</button>
+
+<div class="assist-panel" id="assistPanel" hidden>
+  <div class="assist-head">
+    <span>담당자 도우미</span>
+    <button type="button" class="assist-close" id="assistClose" aria-label="닫기">×</button>
+  </div>
+  <div class="assist-log" id="assistLog">
+    <div class="assist-msg assist-msg-bot">막연한 질문도 괜찮습니다. 예: "그래서 어떻게 해야 해?", "지금 뭐부터 처리하면 돼?"</div>
+  </div>
+  <div class="assist-row">
+    <input type="text" id="assistInput" placeholder="예: 지금 뭐부터 해야 해?" autocomplete="off">
+    <button type="button" id="assistSend">전송</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API = "";  // 같은 오리진(FastAPI가 이 페이지도 서빙)이라 상대경로로 충분
+
+  var REGIONS = ["서울특별시","부산광역시","대구광역시","인천광역시","광주광역시","대전광역시",
+    "울산광역시","세종특별자치시","경기도","강원특별자치도","충청북도","충청남도",
+    "전북특별자치도","전라남도","경상북도","경상남도","제주특별자치도"];
+  var regionSelect = document.getElementById("fRegion");
+  REGIONS.forEach(function (r) { var o = document.createElement("option"); o.value = r; o.textContent = r; regionSelect.appendChild(o); });
+
+  var state = {
+    회사명: "", 소재지역: "", 중소기업여부: true,
+    보유면허: [], 보유인증: [], 직접생산증명: [],
+    기술인력: { 특급: 0, 고급: 0, 중급: 0 },
+    실적: [],
+    _extra: {}
+  };
+  var demoCtx = null;
+  var currentContextId = "demo";
+  var lastJudgeResult = { api_results: [], slot_results: [] };
+
+  var el = {
+    company: document.getElementById("fCompany"), region: document.getElementById("fRegion"),
+    sme: document.getElementById("fSme"),
+    gSpecial: document.getElementById("gSpecial"), gHigh: document.getElementById("gHigh"), gMid: document.getElementById("gMid"),
+    perfList: document.getElementById("perfList"), perfEmpty: document.getElementById("perfEmpty"), perfCount: document.getElementById("perfCount"),
+    addPerf: document.getElementById("addPerf"),
+    statPerfCount: document.getElementById("statPerfCount"), statPerfSum: document.getElementById("statPerfSum"),
+    uploadMsg: document.getElementById("uploadMsg"), fileInput: document.getElementById("fileInput"), dropzone: document.getElementById("dropzone"),
+    exportBtn: document.getElementById("exportBtn"), jsonBox: document.getElementById("jsonBox"), jsonOutput: document.getElementById("jsonOutput"),
+    connChip: document.getElementById("connChip"), connText: document.getElementById("connText"),
+    fatalBanner: document.getElementById("fatalBanner"),
+    eligBody: document.getElementById("eligBody"), judgeHint: document.getElementById("judgeHint"),
+    findingsBody: document.getElementById("findingsBody"), findingsCount: document.getElementById("findingsCount"),
+    unresolvableBody: document.getElementById("unresolvableBody"),
+  };
+
+  function setConn(mode, text) {
+    el.connChip.className = "conn " + mode;
+    el.connText.textContent = text;
+  }
+  function showFatal(html) {
+    el.fatalBanner.innerHTML = html;
+    el.fatalBanner.hidden = false;
+  }
+
+  // ── tag fields ───────────────────────────────────────────────
+  var TAG_FIELDS = {
+    license: { key: "보유면허", input: document.getElementById("inLicense"), chips: document.getElementById("chipsLicense") },
+    cert:    { key: "보유인증", input: document.getElementById("inCert"),    chips: document.getElementById("chipsCert") },
+    direct:  { key: "직접생산증명", input: document.getElementById("inDirect"), chips: document.getElementById("chipsDirect") },
+  };
+  function renderChips(fieldKey) {
+    var f = TAG_FIELDS[fieldKey];
+    f.chips.innerHTML = "";
+    state[f.key].forEach(function (val, i) {
+      var chip = document.createElement("span"); chip.className = "chip";
+      var text = document.createElement("span"); text.textContent = val;
+      var btn = document.createElement("button"); btn.type = "button"; btn.textContent = "×";
+      btn.setAttribute("aria-label", val + " 삭제");
+      btn.addEventListener("click", function () { state[f.key].splice(i, 1); renderChips(fieldKey); onProfileChange(true); });
+      chip.appendChild(text); chip.appendChild(btn); f.chips.appendChild(chip);
+    });
+  }
+  function addTag(fieldKey) {
+    var f = TAG_FIELDS[fieldKey]; var val = f.input.value.trim();
+    if (!val) return;
+    if (state[f.key].indexOf(val) === -1) state[f.key].push(val);
+    f.input.value = ""; renderChips(fieldKey); onProfileChange(true); f.input.focus();
+  }
+  Object.keys(TAG_FIELDS).forEach(function (k) {
+    TAG_FIELDS[k].input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addTag(k); } });
+  });
+  document.querySelectorAll(".tag-add[data-target]").forEach(function (btn) {
+    btn.addEventListener("click", function () { addTag(btn.getAttribute("data-target")); });
+  });
+
+  // ── performance rows ─────────────────────────────────────────
+  function renderPerf() {
+    el.perfList.innerHTML = "";
+    el.perfEmpty.hidden = state.실적.length > 0;
+    el.perfCount.textContent = state.실적.length + "건";
+    state.실적.forEach(function (row, i) {
+      var wrap = document.createElement("div"); wrap.className = "perf-row";
+      var head = document.createElement("div"); head.className = "perf-row-head";
+      var tag = document.createElement("span"); tag.textContent = "실적 " + (i + 1);
+      var rm = document.createElement("button"); rm.type = "button"; rm.className = "perf-remove"; rm.textContent = "삭제";
+      rm.addEventListener("click", function () { state.실적.splice(i, 1); renderPerf(); onProfileChange(true); });
+      head.appendChild(tag); head.appendChild(rm); wrap.appendChild(head);
+
+      var grid = document.createElement("div"); grid.className = "perf-grid";
+      grid.innerHTML =
+        '<div><label>사업명</label><input type="text" data-f="사업명" placeholder="예: 가상E시 도시정보 플랫폼 구축"></div>' +
+        '<div><label>발주처</label><input type="text" data-f="발주처" placeholder="예: 가상E시청"></div>' +
+        '<div><label>계약금액(원)</label><input type="number" min="0" step="1000000" data-f="계약금액" placeholder="0"><div class="amount-preview" data-preview></div></div>' +
+        '<div><label>완료일</label><input type="date" data-f="완료일"></div>';
+      var inputs = grid.querySelectorAll("[data-f]");
+      inputs.forEach(function (inp) {
+        var f = inp.getAttribute("data-f");
+        inp.value = row[f] || (f === "계약금액" ? 0 : "");
+        inp.addEventListener("input", function () {
+          row[f] = f === "계약금액" ? (parseInt(inp.value, 10) || 0) : inp.value;
+          if (f === "계약금액") updateAmountPreview(grid, row[f]);
+          onProfileChange(f !== "사업명" && f !== "발주처");
+        });
+      });
+      updateAmountPreview(grid, row.계약금액 || 0);
+      wrap.appendChild(grid); el.perfList.appendChild(wrap);
+    });
+  }
+  function updateAmountPreview(grid, val) {
+    var prev = grid.querySelector("[data-preview]");
+    if (prev) prev.textContent = val ? Number(val).toLocaleString("ko-KR") + "원" : "";
+  }
+  el.addPerf.addEventListener("click", function () {
+    state.실적.push({ 사업명: "", 발주처: "", 계약금액: 0, 완료일: "" });
+    renderPerf(); onProfileChange(true);
+  });
+
+  // ── basic fields ─────────────────────────────────────────────
+  el.company.addEventListener("input", function () { state.회사명 = el.company.value; onProfileChange(false); });
+  el.region.addEventListener("change", function () { state.소재지역 = el.region.value; onProfileChange(true); });
+  el.sme.addEventListener("change", function () { state.중소기업여부 = el.sme.checked; onProfileChange(true); });
+  [["gSpecial","특급"],["gHigh","고급"],["gMid","중급"]].forEach(function (p) {
+    el[p[0]].addEventListener("input", function () { state.기술인력[p[1]] = parseInt(el[p[0]].value, 10) || 0; onProfileChange(true); });
+  });
+
+  // ── local stats (no server needed) ──────────────────────────
+  function updateStats() {
+    el.statPerfCount.innerHTML = state.실적.length + "<small> 건</small>";
+    var sum = state.실적.reduce(function (a, r) { return a + (r.계약금액 || 0); }, 0);
+    el.statPerfSum.innerHTML = sum.toLocaleString("ko-KR") + "<small> 원</small>";
+  }
+
+  // ── debounce + judge call ────────────────────────────────────
+  var judgeTimer = null, judgeSeq = 0;
+  function onProfileChange(immediate) {
+    updateStats();
+    if (judgeTimer) clearTimeout(judgeTimer);
+    judgeTimer = setTimeout(runJudge, immediate ? 60 : 400);
+  }
+
+  function pillFor(v) {
+    if (v === "충족") return '<span class="pill ok">충족</span>';
+    if (v === "미충족") return '<span class="pill no">미충족</span>';
+    if (v === "정보") return '<span class="pill info">정보</span>';
+    return '<span class="pill hold">판정 불가</span>';
+  }
+
+  function renderEligibility(apiResults, slotResults) {
+    var seq = ++judgeSeq;
+    var html = "";
+    apiResults.forEach(function (r) {
+      html += '<div class="verdict-item"><div class="verdict-head">' + pillFor(r.verdict) +
+        '<div class="verdict-text">' + escapeHtml(r["항목"]) +
+        '<div class="verdict-reason">' + escapeHtml(r["근거"]) + '</div></div></div></div>';
+    });
+    el.eligBody.innerHTML = html || '<p class="verdict-loading">표시할 항목 없음</p>';
+
+    var container = document.createElement("div");
+    slotResults.forEach(function (r, idx) {
+      var item = document.createElement("div"); item.className = "verdict-item";
+      var head = document.createElement("div"); head.className = "verdict-head";
+      head.innerHTML = pillFor(r.verdict) +
+        '<div class="verdict-text">' + escapeHtml((r.slot.raw || "").slice(0, 70)) +
+        '<div class="verdict-reason">' + escapeHtml(r["근거"] || "") + '</div></div>';
+      item.appendChild(head);
+
+      if (r["되묻기"]) {
+        var chat = document.createElement("div"); chat.className = "chatline";
+        chat.innerHTML =
+          '<div class="q">되묻기: <b>"' + escapeHtml(r["되묻기"]) + '"</b></div>' +
+          '<div class="chat-row"><input type="text" placeholder="담당자 답변을 자연어로 입력…"><button type="button">전송</button></div>' +
+          '<div class="chat-feedback" hidden></div>';
+        var input = chat.querySelector("input");
+        var btn = chat.querySelector("button");
+        var fb = chat.querySelector(".chat-feedback");
+        function send() {
+          var text = input.value.trim();
+          if (!text || btn.disabled) return;
+          btn.disabled = true; input.disabled = true;
+          btn.textContent = "해석 중…";
+          fb.hidden = true; fb.innerHTML = "";
+          fetch(API + "/api/answer", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slot: r.slot, question: r["되묻기"], answer: text })
+          }).then(function (res) { return res.json(); }).then(function (parsed) {
+            var lines = [];
+            (parsed.rejected || []).forEach(function (msg) { lines.push('<div class="rej">⚠ 폐기: ' + escapeHtml(msg) + '</div>'); });
+            if (parsed.answer_type === "모름") lines.push('<div class="neu">"확인 필요"로 접수 — 판정 보류 유지</div>');
+            if (parsed.answer_type === "무관") lines.push('<div class="neu">질문과 관련된 답변으로 보이지 않습니다. 다시 시도해 주세요.</div>');
+            if (parsed.answer_type === "empty") lines.push('<div class="neu">답변을 입력해 주세요.</div>');
+            if (Object.keys(parsed.updates || {}).length) {
+              lines.push('<div class="ok">반영: ' + escapeHtml(JSON.stringify(parsed.updates)) + '</div>');
+              return applyAndRejudge(parsed.updates).then(function () {
+                fb.innerHTML = lines.join(""); fb.hidden = false;
+                chat.insertAdjacentHTML("beforeend", '<div class="chat-resolved">✓ 반영되어 재판정됨</div>');
+                input.value = ""; btn.disabled = false; input.disabled = false; btn.textContent = "전송";
+              });
+            } else {
+              fb.innerHTML = lines.join("") || '<div class="neu">반영할 값을 찾지 못했습니다. 다시 답해 주세요.</div>';
+              fb.hidden = false;
+              btn.disabled = false; input.disabled = false; btn.textContent = "전송"; input.focus();
+            }
+          }).catch(function (e) {
+            fb.innerHTML = '<div class="rej">서버 오류: ' + escapeHtml(String(e)) + '</div>';
+            fb.hidden = false; btn.disabled = false; input.disabled = false; btn.textContent = "전송";
+          });
+        }
+        btn.addEventListener("click", send);
+        input.addEventListener("keydown", function (e) { if (e.key === "Enter") send(); });
+        item.appendChild(chat);
+      }
+      container.appendChild(item);
+    });
+    el.eligBody.appendChild(container);
+  }
+
+  function applyAndRejudge(updates) {
+    return fetch(API + "/api/apply", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile: buildProfilePayload(), updates: updates })
+    }).then(function (res) { return res.json(); }).then(function (data) {
+      applyProfileToForm(data.profile);
+      return runJudge();
+    });
+  }
+
+  function fetchJudge() {
+    return fetch(API + "/api/judge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile: buildProfilePayload(), context_id: currentContextId })
+    }).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    });
+  }
+
+  // 판정 결과를 받아 화면과 캐시(lastJudgeResult)를 함께 갱신한다.
+  // 파일 업로드 직후처럼 debounce가 아직 안 끝난 시점에 도우미 챗이
+  // 옛 캐시를 근거로 답하는 문제를 막기 위해, runJudge와 별개로
+  // sendAssist도 이 함수를 거쳐 항상 "방금 계산한" 결과를 받는다.
+  function applyJudgeResult(data) {
+    lastJudgeResult = data;
+    renderEligibility(data.api_results || [], data.slot_results || []);
+    el.judgeHint.textContent = "실시간 판정 · 방금 갱신됨";
+    setConn("ok", "서버 연결됨");
+    updateAssistBadge();
+    return data;
+  }
+
+  function runJudge() {
+    el.judgeHint.textContent = "갱신 중…";
+    return fetchJudge().then(applyJudgeResult).catch(function (e) {
+      el.judgeHint.textContent = "판정 갱신 실패";
+      setConn("bad", "서버 연결 끊김");
+    });
+  }
+
+  // ── findings (RFP 자체 성질 — 프로필과 무관, 1회 렌더) ─────────
+  function fmtValue(v) {
+    if (!v) return "";
+    if (v.value == null) return v.raw || "";
+    if (v.unit === "KRW") return Number(v.value).toLocaleString("ko-KR") + "원";
+    if (v.unit === "MONTH") return v.value + "개월";
+    if (v.unit === "PERCENT") return v.value + "%";
+    return String(v.value);
+  }
+  function renderFindings(findings, penaltyNote) {
+    var need = findings.filter(function (f) { return f.verdict === "확인 필요"; });
+    var unresolved = findings.filter(function (f) { return f.verdict === "확인 불가"; });
+    el.findingsCount.textContent = need.length + "건";
+
+    if (!need.length) {
+      el.findingsBody.innerHTML = '<p class="verdict-loading">확인 필요 조항 없음</p>';
+    } else {
+      el.findingsBody.innerHTML = need.map(function (f) {
+        var method = f.detection_method === "standard_diff" ? "표준 대조" : "패턴 탐지";
+        var std = f.standard ? '<div class="finding-std"><b>' + escapeHtml(f.standard.clause_ref) + '</b> — ' + escapeHtml(f.standard.std_desc) + '</div>' : "";
+        var val = f.rfp_value ? '<div class="finding-std">RFP 값: <b>' + escapeHtml(fmtValue(f.rfp_value)) + '</b> (원문: "' + escapeHtml(f.rfp_value.raw || "") + '")</div>' : "";
+        return '<div class="finding-item">' +
+          '<div class="finding-head"><span class="finding-method">' + method + '</span>' +
+          '<span class="card-hint">' + escapeHtml(f.rfp_clause_label || "") + '항</span></div>' +
+          '<div class="finding-title">' + escapeHtml(f.risk_type) + '</div>' +
+          std + val +
+          '<div class="finding-std">' + escapeHtml(f.reason) + '</div>' +
+          '<div class="finding-quote">"' + escapeHtml(f.rfp_excerpt || "") + '"</div>' +
+          '</div>';
+      }).join("");
+    }
+
+    var extra = unresolved.map(function (f) {
+      return '<div class="unresolvable-item"><b>' + escapeHtml(f.rfp_clause_label || "") + '항 ' + escapeHtml(f.risk_type) + '</b> — ' + escapeHtml(f.reason) + '</div>';
+    });
+    extra.push('<div class="unresolvable-item">' + escapeHtml(penaltyNote) + '</div>');
+    el.unresolvableBody.innerHTML = extra.join("");
+  }
+
+  // ── 공고 정보 · 소스 배너 ────────────────────────────────────────
+  function renderBidInfo(ctx) {
+    var item = ctx.item || {};
+    var no = item.bidNtceNo || (ctx.source === "demo" ? "DEMO" : "-");
+    document.getElementById("biNo").textContent = no + (item.bidNtceOrd != null && item.bidNtceOrd !== "" ? "-" + item.bidNtceOrd : "");
+    document.getElementById("biName").textContent = ctx.title || item.bidNtceNm || "-";
+    document.getElementById("biOrg").textContent = item.ntceInsttNm || "-";
+    document.getElementById("biDeadline").textContent = item.bidClseDt || "-";
+    var price = item.presmptPrce;
+    document.getElementById("biPrice").textContent = (price && !isNaN(Number(price)))
+      ? Number(price).toLocaleString("ko-KR") + "원" : "-";
+    var fname = ctx.rfp_file ? ctx.rfp_file.split(/[\\/]/).pop() : null;
+    document.getElementById("biFile").textContent = fname || (ctx.source === "demo" ? "(데모 문서)" : "-");
+  }
+
+  function updateSourceBanner(ctx) {
+    var tag = document.getElementById("sourceTag");
+    var text = document.getElementById("sourceText");
+    if (ctx.source === "real") {
+      tag.textContent = "실제 공고";
+      tag.className = "tag tag-real";
+      text.textContent = "나라장터 실제 공고" + (ctx.item && ctx.item.bidNtceNo ? "(" + ctx.item.bidNtceNo + ")" : "") +
+        " 기준입니다. 자격요건 슬롯은 LLM 추출 결과이므로 실제 제출 전 원문을 직접 대조하십시오.";
+    } else {
+      tag.textContent = "DEMO";
+      tag.className = "tag";
+      text.textContent = "가상 공고(demo/DEMO_공고_스마트도시플랫폼.txt) 기준입니다. 실제 입찰 판단에 사용하지 마십시오.";
+    }
+  }
+
+  // 데모든 실제 공고든 컨텍스트를 화면에 반영하는 단일 경로.
+  // 공고를 바꿔도 회사 프로필 입력값은 그대로 유지한다 — 같은 프로필로
+  // 여러 공고를 비교하는 게 자연스러운 사용 흐름이기 때문이다.
+  function applyContext(ctx) {
+    demoCtx = ctx;
+    currentContextId = ctx.context_id;
+    document.getElementById("bidStatusHint").textContent =
+      ctx.source === "real" ? "실제 공고 표시 중" : "데모 공고 표시 중";
+    renderBidInfo(ctx);
+    updateSourceBanner(ctx);
+    renderChangeNotice(ctx);
+    renderSummary(ctx);
+    updateStarButton(ctx);
+    renderFindings(ctx.findings || [], ctx.penalty_rate_note || "");
+    if (ctx.slot_status !== "ok") {
+      showFatal("자격요건 슬롯 추출 불가 (" + escapeHtml(ctx.slot_notes || "") +
+        ") — 확인 필요 조항 탐지는 정상 동작합니다.");
+    } else {
+      el.fatalBanner.hidden = true;
+    }
+    return runJudge();
+  }
+
+  // 마지막으로 이 공고를 열어본 뒤 실제로 바뀐 게 있으면 배너로 알린다.
+  // /api/bid는 이 화면이 열릴 때마다(즐겨찾기 재진입 포함) 실제 API로
+  // 다시 확인하므로, 이 배너가 뜬다는 건 "방금 재확인해서 발견한" 변경이다.
+  function renderChangeNotice(ctx) {
+    var el2 = document.getElementById("changeNotice");
+    var notice = ctx.change_notice;
+    if (!notice || (!notice.finding_changes.length && !notice.slot_changes.length)) {
+      el2.hidden = true;
+      return;
+    }
+    var lines = ["⚠ 마지막 확인 이후 이 공고가 변경되었습니다:"];
+    notice.finding_changes.forEach(function (c) {
+      lines.push("· [" + c.state + "] " + (c.clause_label || "") + "항 " + c.risk_type);
+    });
+    notice.slot_changes.forEach(function (c) {
+      lines.push("· [자격요건-" + c.state + "] " + (c.raw || "").slice(0, 50));
+    });
+    el2.innerHTML = lines.map(escapeHtml).join("<br>");
+    el2.hidden = false;
+  }
+
+  // 공고문 요약 — Luna가 원문을 훑어 서술만 한다(판정 아님). 코드는 그대로
+  // 화면에 옮겨 적을 뿐, 여기서 나온 내용으로 충족/미충족을 판단하지 않는다.
+  function renderSummary(ctx) {
+    var body = document.getElementById("summaryBody");
+    if (!ctx.rfp_summary) {
+      body.innerHTML = '<p class="verdict-loading">' +
+        (ctx.rfp_summary === null ? "요약을 생성하지 못했습니다 (OPENAI_API_KEY 확인 필요할 수 있음)" : "로딩 중…") +
+        '</p>';
+      return;
+    }
+    var cls = ctx.rfp_summary.indexOf("요약 생성 실패") === 0 || ctx.rfp_summary.indexOf("(요약 생성 실패") === 0
+      ? " summary-fail" : "";
+    body.innerHTML = '<div class="summary-body-text' + cls + '">' + escapeHtml(ctx.rfp_summary) + '</div>';
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ── file upload ──────────────────────────────────────────────
+  function showUploadMsg(text, cls) { el.uploadMsg.textContent = text; el.uploadMsg.className = "upload-msg " + cls; el.uploadMsg.hidden = false; }
+
+  function applyProfileToForm(obj) {
+    var known = ["회사명","소재지역","중소기업여부","보유면허","보유인증","직접생산증명","기술인력","실적"];
+    var extra = {};
+    Object.keys(obj || {}).forEach(function (k) { if (known.indexOf(k) === -1) extra[k] = obj[k]; });
+    state._extra = extra;
+    state.회사명 = obj.회사명 || "";
+    state.소재지역 = obj.소재지역 || "";
+    state.중소기업여부 = obj.중소기업여부 !== false;
+    state.보유면허 = Array.isArray(obj.보유면허) ? obj.보유면허.slice() : [];
+    state.보유인증 = Array.isArray(obj.보유인증) ? obj.보유인증.slice() : [];
+    state.직접생산증명 = Array.isArray(obj.직접생산증명) ? obj.직접생산증명.slice() : [];
+    state.기술인력 = { 특급: (obj.기술인력 && obj.기술인력.특급) || 0, 고급: (obj.기술인력 && obj.기술인력.고급) || 0, 중급: (obj.기술인력 && obj.기술인력.중급) || 0 };
+    state.실적 = Array.isArray(obj.실적) ? obj.실적.map(function (r) { return { 사업명: r.사업명 || "", 발주처: r.발주처 || "", 계약금액: r.계약금액 || 0, 완료일: r.완료일 || "" }; }) : [];
+
+    el.company.value = state.회사명; el.region.value = state.소재지역; el.sme.checked = state.중소기업여부;
+    el.gSpecial.value = state.기술인력.특급; el.gHigh.value = state.기술인력.고급; el.gMid.value = state.기술인력.중급;
+    renderChips("license"); renderChips("cert"); renderChips("direct"); renderPerf(); updateStats();
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var obj = JSON.parse(String(reader.result));
+        applyProfileToForm(obj);
+        onProfileChange(true);
+        if (obj._demo) showUploadMsg("데모 프로필을 불러왔습니다" + (obj._시나리오 ? " — " + obj._시나리오 : ""), "demo");
+        else showUploadMsg("프로필을 불러왔습니다: " + (state.회사명 || "(회사명 없음)"), "ok");
+      } catch (e) { showUploadMsg("JSON 해석 실패 — " + e.message, "err"); }
+    };
+    reader.onerror = function () { showUploadMsg("파일을 읽지 못했습니다.", "err"); };
+    reader.readAsText(file);
+  }
+  el.fileInput.addEventListener("change", function () { handleFile(el.fileInput.files[0]); });
+  ["dragover", "dragenter"].forEach(function (ev) { el.dropzone.addEventListener(ev, function (e) { e.preventDefault(); el.dropzone.classList.add("drag"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { el.dropzone.addEventListener(ev, function () { el.dropzone.classList.remove("drag"); }); });
+  el.dropzone.addEventListener("drop", function (e) { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+  // ── export ───────────────────────────────────────────────────
+  function buildProfilePayload() {
+    return Object.assign({}, state._extra, {
+      회사명: state.회사명, 소재지역: state.소재지역, 보유면허: state.보유면허,
+      직접생산증명: state.직접생산증명, 중소기업여부: state.중소기업여부,
+      실적: state.실적, 기술인력: state.기술인력, 보유인증: state.보유인증,
+    });
+  }
+  el.exportBtn.addEventListener("click", function () {
+    el.jsonOutput.textContent = JSON.stringify(buildProfilePayload(), null, 2);
+    el.jsonBox.hidden = false;
+  });
+
+  // ── 담당자 도우미 (접이식 챗) ────────────────────────────────────
+  var assistFab = document.getElementById("assistFab");
+  var assistPanel = document.getElementById("assistPanel");
+  var assistClose = document.getElementById("assistClose");
+  var assistLog = document.getElementById("assistLog");
+  var assistInput = document.getElementById("assistInput");
+  var assistSend = document.getElementById("assistSend");
+  var assistBadge = document.getElementById("assistBadge");
+  var assistOpened = false;
+
+  function updateAssistBadge() {
+    var pending = (lastJudgeResult.slot_results || []).filter(function (r) { return r["되묻기"]; }).length;
+    assistBadge.hidden = assistOpened || pending === 0;
+    assistBadge.textContent = pending > 9 ? "9+" : String(pending);
+  }
+
+  function toggleAssist(open) {
+    var willOpen = open != null ? open : assistPanel.hidden;
+    assistPanel.hidden = !willOpen;
+    assistFab.setAttribute("aria-expanded", String(willOpen));
+    assistOpened = willOpen;
+    updateAssistBadge();
+    if (willOpen) assistInput.focus();
+  }
+  assistFab.addEventListener("click", function () { toggleAssist(); });
+  assistClose.addEventListener("click", function () { toggleAssist(false); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !assistPanel.hidden) toggleAssist(false);
+  });
+
+  function addAssistMsg(text, who) {
+    var div = document.createElement("div");
+    div.className = "assist-msg assist-msg-" + who;
+    div.textContent = text;
+    assistLog.appendChild(div);
+    assistLog.scrollTop = assistLog.scrollHeight;
+    return div;
+  }
+
+  function sendAssist() {
+    var q = assistInput.value.trim();
+    if (!q || assistSend.disabled) return;
+    addAssistMsg(q, "user");
+    assistInput.value = "";
+    assistSend.disabled = true;
+    var thinking = addAssistMsg("최신 판정 확인 중…", "bot");
+    thinking.classList.add("assist-thinking");
+
+    // 대기 중인 debounce(파일 업로드/필드 변경 직후 등)를 취소하고
+    // 지금 이 순간의 프로필 상태로 즉시 재판정한 뒤, 그 결과로만 질문한다.
+    // lastJudgeResult 캐시를 읽지 않는다 — 캐시가 아직 안 갱신됐을 수 있어서다.
+    if (judgeTimer) { clearTimeout(judgeTimer); judgeTimer = null; }
+
+    fetchJudge().then(function (fresh) {
+      applyJudgeResult(fresh);
+      thinking.textContent = "생각 중…";
+      return fetch(API + "/api/assist", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: q,
+          context: {
+            profile: buildProfilePayload(),   // 폼에 지금 남아있는 원문 값도 함께 보낸다
+            api_results: fresh.api_results || [],
+            slot_results: fresh.slot_results || [],
+            findings: (demoCtx && demoCtx.findings) || [],
+          },
+        }),
+      });
+    }).then(function (r) {
+      // /api/judge와 달리 여기서 res.ok를 확인하지 않으면, 서버가 오류를 던져도
+      // 조용히 "(응답 없음)"만 뜨고 실제 원인이 감춰진다.
+      return r.text().then(function (raw) {
+        var data;
+        try { data = JSON.parse(raw); } catch (e) { data = null; }
+        if (r.status === 404) {
+          // {"detail":"Not Found"} — FastAPI 라우팅 자체가 못 찾은 것이라
+          // 내 핸들러 안의 예외가 아니다. 거의 항상 "서버 코드를 고쳤는데
+          // 이미 떠 있던 프로세스는 재시작 안 해서 옛 라우트로 떠 있음" 상황.
+          throw new Error("서버가 예전 코드로 떠 있는 것 같습니다(HTTP 404) — 서버 터미널에서 " +
+            "Ctrl+C로 끄고 python main.py serve 를 다시 실행한 뒤 이 페이지를 새로고침해 주세요.");
+        }
+        if (!r.ok) {
+          throw new Error("서버 오류(HTTP " + r.status + ")" +
+            (data && data.answer ? ": " + data.answer : ": " + raw.slice(0, 200)) +
+            " — 서버 콘솔(python main.py serve)에 상세 오류가 남아 있을 수 있습니다.");
+        }
+        return data;
+      });
+    }).then(function (data) {
+      thinking.remove();
+      var answer = data && data.answer && data.answer.trim();
+      addAssistMsg(answer || "도우미가 빈 응답을 반환했습니다 — 다시 시도해 주세요.", "bot");
+    }).catch(function (e) {
+      thinking.remove();
+      addAssistMsg("오류: " + (e && e.message ? e.message : String(e)), "bot");
+      setConn("bad", "서버 연결 끊김");
+    }).finally(function () { assistSend.disabled = false; assistInput.focus(); });
+  }
+  assistSend.addEventListener("click", sendAssist);
+  assistInput.addEventListener("keydown", function (e) { if (e.key === "Enter") sendAssist(); });
+
+  // ── 공고 전환 ────────────────────────────────────────────────────
+  var bidNoInput = document.getElementById("bidNoInput");
+  var loadBidBtn = document.getElementById("loadBidBtn");
+  var backToDemoBtn = document.getElementById("backToDemoBtn");
+  var bidMsg = document.getElementById("bidMsg");
+
+  function showBidMsg(text, cls) {
+    bidMsg.textContent = text; bidMsg.className = "upload-msg " + cls; bidMsg.hidden = false;
+  }
+
+  function loadBid(bidNoArg) {
+    var bidNo = (bidNoArg || bidNoInput.value).trim();
+    if (!bidNo || loadBidBtn.disabled) return;
+    bidNoInput.value = bidNo;
+    loadBidBtn.disabled = true;
+    var prevLabel = loadBidBtn.textContent;
+    loadBidBtn.textContent = "불러오는 중…";
+    showBidMsg("조달청 API로 최신 여부 확인 중 — 바뀐 경우에만 재파싱·AI 재추출(수 초~수십 초)합니다.", "demo");
+    fetch(API + "/api/bid", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bid_no: bidNo }),
+    }).then(function (r) {
+      return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+    }).then(function (res) {
+      if (!res.ok) {
+        showBidMsg("오류: " + (res.data.error || "알 수 없는 오류"), "err");
+        return;
+      }
+      applyContext(res.data).then(function () {
+        var statusText = { no_change: "변경 없음", meta_only: "메타만 변경",
+          initial: "최초 로드", updated: "변경 감지·재판정 완료" }[res.data.refresh_status] || "";
+        showBidMsg("불러왔습니다: " + (res.data.title || bidNo) +
+          (statusText ? " (" + statusText + ")" : ""), "ok");
+      });
+    }).catch(function (e) {
+      showBidMsg("서버 오류: " + String(e), "err");
+    }).finally(function () {
+      loadBidBtn.disabled = false; loadBidBtn.textContent = prevLabel;
+    });
+  }
+  loadBidBtn.addEventListener("click", function () { loadBid(); });
+  bidNoInput.addEventListener("keydown", function (e) { if (e.key === "Enter") loadBid(); });
+
+  backToDemoBtn.addEventListener("click", function () {
+    if (currentContextId === "demo") return;
+    bidNoInput.value = "";
+    bidMsg.hidden = true;
+    fetch(API + "/api/demo").then(function (r) { return r.json(); })
+      .then(applyContext)
+      .catch(function (e) { showBidMsg("서버 오류: " + String(e), "err"); });
+  });
+
+  // ── 즐겨찾기(감시 목록) ──────────────────────────────────────────
+  var starBtn = document.getElementById("starBtn");
+  var starBtnLabel = document.getElementById("starBtnLabel");
+  var watchlistChips = document.getElementById("watchlistChips");
+  var watchlist = [];
+
+  function loadWatchlist() {
+    return fetch(API + "/api/watchlist").then(function (r) { return r.json(); })
+      .then(function (data) {
+        watchlist = data.items || [];
+        renderWatchlistChips();
+      }).catch(function () {});
+  }
+
+  function renderWatchlistChips() {
+    watchlistChips.innerHTML = "";
+    if (!watchlist.length) {
+      var empty = document.createElement("span");
+      empty.className = "summary-empty";
+      empty.textContent = "즐겨찾기한 공고 없음";
+      watchlistChips.appendChild(empty);
+      return;
+    }
+    watchlist.forEach(function (item) {
+      var chip = document.createElement("span");
+      chip.className = "chip watch-chip" + (item.bid_no === currentContextId ? " active" : "");
+      chip.title = "클릭하면 최신 상태로 다시 불러옵니다";
+      var text = document.createElement("span");
+      text.textContent = item.label || item.bid_no;
+      text.addEventListener("click", function () { loadBid(item.bid_no); });
+      var rm = document.createElement("button");
+      rm.type = "button";
+      rm.textContent = "×";
+      rm.setAttribute("aria-label", "즐겨찾기에서 제거");
+      rm.addEventListener("click", function (e) {
+        e.stopPropagation();
+        fetch(API + "/api/watchlist/" + encodeURIComponent(item.bid_no), { method: "DELETE" })
+          .then(function (r) { return r.json(); })
+          .then(function (data) { watchlist = data.items || []; renderWatchlistChips(); updateStarButton(demoCtx); });
+      });
+      chip.appendChild(text);
+      chip.appendChild(rm);
+      watchlistChips.appendChild(chip);
+    });
+  }
+
+  function updateStarButton(ctx) {
+    var isReal = ctx && ctx.source === "real";
+    starBtn.disabled = !isReal;
+    var starred = isReal && watchlist.some(function (i) { return i.bid_no === ctx.context_id; });
+    starBtn.classList.toggle("starred", !!starred);
+    starBtnLabel.textContent = !isReal ? "즐겨찾기 추가" : (starred ? "즐겨찾기 해제" : "즐겨찾기 추가");
+  }
+
+  starBtn.addEventListener("click", function () {
+    if (starBtn.disabled || !demoCtx || demoCtx.source !== "real") return;
+    var bidNo = demoCtx.context_id;
+    var starred = watchlist.some(function (i) { return i.bid_no === bidNo; });
+    var req = starred
+      ? fetch(API + "/api/watchlist/" + encodeURIComponent(bidNo), { method: "DELETE" })
+      : fetch(API + "/api/watchlist", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bid_no: bidNo, label: demoCtx.title }),
+        });
+    req.then(function (r) { return r.json(); }).then(function (data) {
+      watchlist = data.items || [];
+      renderWatchlistChips();
+      updateStarButton(demoCtx);
+    });
+  });
+
+  // ── init: 데모가 아니라 실제 공고를 기본으로 불러온다 ────────────
+  // URL에 ?bid=공고번호 를 붙이면 그 공고를 바로 연다(즐겨찾기 링크 공유 등에 쓸 수 있음).
+  // 지정이 없으면 이 프로젝트가 실제로 검증해온 공고를 기본값으로 연다.
+  // 조달청 API 조회가 실패하면(키 미설정·일일 호출 한도·네트워크 단절 등)
+  // 화면이 빈 채로 멈추지 않도록 데모로 폴백하되, 데모라는 사실을 분명히 알린다.
+  var DEFAULT_REAL_BID_NO = "R26BK01705963";
+
+  function loadDemoFallback(reason) {
+    return fetch(API + "/api/demo").then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }).then(function (ctx) {
+      setConn("ok", "서버 연결됨 (데모로 대체)");
+      renderChips("license"); renderChips("cert"); renderChips("direct"); renderPerf(); updateStats();
+      return applyContext(ctx);
+    }).then(function () {
+      showBidMsg(reason + " — 데모 공고로 대신 표시합니다.", "err");
+    });
+  }
+
+  function initBid(bidNo) {
+    return fetch(API + "/api/bid", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bid_no: bidNo }),
+    }).then(function (r) {
+      return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+    }).then(function (res) {
+      if (!res.ok) throw new Error(res.data.error || "공고 조회 실패");
+      setConn("ok", "서버 연결됨");
+      bidNoInput.value = bidNo;
+      renderChips("license"); renderChips("cert"); renderChips("direct"); renderPerf(); updateStats();
+      return applyContext(res.data);
+    }).catch(function (e) {
+      return loadDemoFallback("실제 공고(" + bidNo + ")를 불러오지 못했습니다: " +
+        String((e && e.message) || e));
+    });
+  }
+
+  loadWatchlist();
+  var urlBid = new URLSearchParams(window.location.search).get("bid");
+  initBid((urlBid || "").trim() || DEFAULT_REAL_BID_NO).then(function () {
+    updateStarButton(demoCtx);  // 즐겨찾기 로드가 늦게 끝났을 수 있으니 한 번 더 반영
+  }).catch(function (e) {
+    // 실제 공고 조회와 데모 폴백 둘 다 실패 — 서버 자체가 죽은 경우
+    setConn("bad", "서버 연결 실패");
+    showFatal("데모 서버에 연결하지 못했습니다. 터미널에서 <code>python main.py serve</code>를 실행한 뒤 " +
+      "이 페이지를 새로고침하세요. (오류: " + escapeHtml(String(e)) + ")");
+    el.eligBody.innerHTML = '<p class="verdict-loading">서버 연결 후 표시됩니다</p>';
+    el.findingsBody.innerHTML = '<p class="verdict-loading">서버 연결 후 표시됩니다</p>';
+  });
+})();
+</script>
+</body>
+</html>

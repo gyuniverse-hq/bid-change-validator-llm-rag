@@ -1,0 +1,93 @@
+{
+  "cases": 1,
+  "results": [
+    {
+      "case_id": "R26BK01705963_v1",
+      "source_status": "ok",
+      "standard_rules": [
+        {
+          "rule_id": "warranty_period",
+          "expected": "적합",
+          "got": "적합",
+          "verdict_ok": true,
+          "location": "정답",
+          "notes": []
+        },
+        {
+          "rule_id": "warranty_bond_rate",
+          "expected": "없음",
+          "got": "(미보고)",
+          "verdict_ok": true,
+          "location": "n/a",
+          "notes": []
+        },
+        {
+          "rule_id": "ip_ownership",
+          "expected": "적합",
+          "got": "적합",
+          "verdict_ok": true,
+          "location": "정답",
+          "notes": []
+        },
+        {
+          "rule_id": "penalty_cap",
+          "expected": "없음",
+          "got": "(미보고)",
+          "verdict_ok": true,
+          "location": "n/a",
+          "notes": []
+        },
+        {
+          "rule_id": "inspection_period",
+          "expected": "적합",
+          "got": "적합",
+          "verdict_ok": true,
+          "location": "오귀속",
+          "notes": [
+            "근거 오귀속 — 착수보고서 제출기한이지 검사(검수) 기간이 아니다. 값이 우연히 14일로 같아 판정 결과는 맞아떨어지지만 근거가 틀린 것이므로 위치 오답으로 센다."
+          ]
+        },
+        {
+          "rule_id": "termination_threshold",
+          "expected": "없음",
+          "got": "(미보고)",
+          "verdict_ok": true,
+          "location": "n/a",
+          "notes": []
+        }
+      ],
+      "open_ended_scope": {
+        "must_total": 5,
+        "must_hit": 0,
+        "recall": 0.0,
+        "must_detail": [
+          {
+            "quote": "본 제안요청서에 기술되지 않았어도 사업을 추진하는데 있어 필요하다고 판단되는 사항은 협의를 통해 제안 범위에 포함할 수 있음.",
+            "hit": false
+          },
+          {
+            "quote": "모든 조항은 최소한의 사항만을 규정하였으므로 상세히 기술되지 않았거나 누락된 사항에 대하여 운영상 문제가 발생하지 않도록 하여야 하며",
+            "hit": false
+          },
+          {
+            "quote": "제안요청서에 명시되지 않은 사항이라도 본 과업의 목적 달성을 위해 불가피한 사항은 발주기관과 제안사와 상호 협의하여 발주기관이 요청할 경우 이행하여야 함.",
+            "hit": false
+          },
+          {
+            "quote": "제안 요청내용 이외의 추가 설비, 시스템 등이 필요한 경우 해당 내용을  포함하여야 함.",
+            "hit": false
+          },
+          {
+            "quote": "사무공간외 사업수행을 위하여 필요한 기타 작업 및 관련 비용은 발주    사업예산에 계상되어 있으므로 관련 비용을 포함하여 제안가격을 산출함.",
+            "hit": false
+          }
+        ],
+        "optional_hit": 0,
+        "optional_total": 4,
+        "trap_false_positives": [],
+        "unlabeled_detections": [],
+        "total_detections": 0
+      }
+    }
+  ]
+}

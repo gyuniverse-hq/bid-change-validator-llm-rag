@@ -1,0 +1,16 @@
+{
+  "bid_ntce_no": "R26BK01705963",
+  "bid_ntce_ord": "000",
+  "version": "v1",
+  "selection_method": "keyword:제안요청서",
+  "files": [
+    {
+      "name": "2. 제안요청서(「법무정보 통합플랫폼 기반 구축 사업」).hwpx",
+      "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01705963&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+      "path": "C:\\Users\\playdata2\\proj-3rd-demo\\data\\attachments\\R26BK01705963\\v1\\2. 제안요청서(「법무정보 통합플랫폼 기반 구축 사업」).hwpx",
+      "sha256": "96da496938c0b3e093e55974ff483a22cd52af77a7a22321be650f0ec781965c",
+      "size": 1821194
+    }
+  ],
+  "rfp_file": "C:\\Users\\playdata2\\proj-3rd-demo\\data\\attachments\\R26BK01705963\\v1\\2. 제안요청서(「법무정보 통합플랫폼 기반 구축 사업」).hwpx"
+}
