@@ -1,0 +1,11 @@
+python-dotenv
+requests
+lxml
+pyhwp
+olefile
+pypdf
+pdfplumber
+openai
+pytest
+fastapi
+uvicorn

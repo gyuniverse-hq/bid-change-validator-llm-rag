@@ -1,0 +1,46 @@
+{
+  "status": "ok",
+  "runs": 1,
+  "expected": 8,
+  "extracted": 8,
+  "matched": 8,
+  "recall": 1.0,
+  "precision": 1.0,
+  "reference_accuracy": 1.0,
+  "type_accuracy": 0.875,
+  "over_extractions": [],
+  "raw_preservation_violations": [],
+  "misses": [
+    "slot_single: '소프트웨어사업자' 유형 오류 (기대 면허요건 / 실제 기타요건)"
+  ],
+  "per_case": [
+    {
+      "case_id": "slot_standard",
+      "expected": 4,
+      "extracted": 4,
+      "matched": 4,
+      "missed": []
+    },
+    {
+      "case_id": "slot_paraphrase",
+      "expected": 3,
+      "extracted": 3,
+      "matched": 3,
+      "missed": []
+    },
+    {
+      "case_id": "slot_single",
+      "expected": 1,
+      "extracted": 1,
+      "matched": 1,
+      "missed": []
+    },
+    {
+      "case_id": "slot_none",
+      "expected": 0,
+      "extracted": 0,
+      "matched": 0,
+      "missed": []
+    }
+  ]
+}

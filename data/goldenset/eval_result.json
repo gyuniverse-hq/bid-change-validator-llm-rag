@@ -1,0 +1,70 @@
+{
+  "cases": 56,
+  "overall": {
+    "tp": 28,
+    "fp": 0,
+    "fn": 0,
+    "recall": 1.0,
+    "precision": 1.0,
+    "recall_with_location": 1.0
+  },
+  "base_phrasing": {
+    "tp": 7,
+    "fp": 0,
+    "fn": 0,
+    "recall": 1.0,
+    "precision": 1.0
+  },
+  "held_out_phrasing": {
+    "tp": 21,
+    "fp": 0,
+    "fn": 0,
+    "recall": 1.0,
+    "precision": 1.0
+  },
+  "per_type": {
+    "inspection_period": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    },
+    "ip_ownership": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    },
+    "open_ended_scope": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    },
+    "penalty_cap": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    },
+    "termination_threshold": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    },
+    "warranty_bond_rate": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    },
+    "warranty_period": {
+      "p0": "O",
+      "p1": "O",
+      "p2": "O",
+      "p3": "O"
+    }
+  },
+  "misses": []
+}
